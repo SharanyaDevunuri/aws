@@ -1,26 +1,42 @@
 pipeline {
     agent any
-    
+
+ 
+
+    environment {
+        AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
+        AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
+    }
+
     stages {
+        stage('CleanWorkspacefirst') {
+            steps {
+                cleanWs()
+            }
+        }
         stage('Clone Repository') {
             steps {
-                git branch: 'main', url: 'https://github.com/vinayhegde105/cloud_build.git'
+                git branch: 'main', url: 'https://github.com/S3Bucket/S3.git'
             }
         }
 
-        stage('SCM Migration') {
+        stage('Terraform command execution') {
             steps {
                 script {
-            sh '''
-                #!/bin/bash
-                export AWS_ACCESS_KEY_ID="" 
-                export AWS_SECRET_ACCESS_KEY="" 
-                export AWS_DEFAULT_REGION="us-east-1"
-                terraform init 
-                terraform plan -var-file="configs/tek/terraform.tfvars"
-            '''
+                    sh '''
+                        #!/bin/bash
+                        terraform init -backend-config region="us-east-1" -backend-config bucket="tgs-infra" -backend-config key="S3/app31/terraform.tfstate"
+                        terraform validate
+                        terraform plan -var-file="configs/app31/terraforms.tfvars"
+                        terraform apply --auto-approve -var-file="configs/app31/terraforms.tfvars"
+                    '''
     }
             }
-        }
+        }        
+    stage('CleanWorkspace') {
+            steps {
+                cleanWs()
+            }
+        }   
     }
 }
